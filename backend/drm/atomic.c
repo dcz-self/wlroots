@@ -143,15 +143,26 @@ static bool atomic_conn_enable(struct wlr_drm_backend *drm,
 	struct atomic atom;
 	atomic_begin(crtc, &atom);
 	atomic_add(&atom, crtc->id, crtc->props.active, enable);
+	int ok;
 	if (enable) {
 		atomic_add(&atom, conn->id, conn->props.crtc_id, crtc->id);
 		atomic_add(&atom, crtc->id, crtc->props.mode_id, crtc->mode_id);
+		ok = atomic_commit(drm->fd, &atom, conn, DRM_MODE_ATOMIC_ALLOW_MODESET,
+			true);
 	} else {
 		atomic_add(&atom, conn->id, conn->props.crtc_id, 0);
 		atomic_add(&atom, crtc->id, crtc->props.mode_id, 0);
+		ok = atomic_commit(drm->fd, &atom, conn, DRM_MODE_ATOMIC_ALLOW_MODESET,
+			true);
+		if (!ok) {
+			wlr_log(WLR_DEBUG, "Blank with crtc/mode unset did not work - "
+				"just disabling.");
+			atomic_add(&atom, crtc->id, crtc->props.active, enable);
+			ok = atomic_commit(drm->fd, &atom, conn,
+				DRM_MODE_ATOMIC_ALLOW_MODESET, true);
+		}
 	}
-	return atomic_commit(drm->fd, &atom, conn, DRM_MODE_ATOMIC_ALLOW_MODESET,
-		true);
+	return ok;
 }
 
 static bool atomic_crtc_set_cursor(struct wlr_drm_backend *drm,
