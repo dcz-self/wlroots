@@ -9,6 +9,7 @@
 #include <wlr/util/log.h>
 #include <xkbcommon/xkbcommon.h>
 #include "input-method-unstable-v2-protocol.h"
+#include "text-input-unstable-v3-protocol.h"
 #include "util/signal.h"
 
 static const struct zwp_input_method_v2_interface input_method_impl;
@@ -148,6 +149,9 @@ void wlr_input_method_v2_send_text_change_cause(
 void wlr_input_method_v2_send_content_type(
 		struct wlr_input_method_v2 *input_method,
 		uint32_t hint, uint32_t purpose) {
+	if (wl_resource_get_version(input_method->resource) < 2) {
+		hint &= ~(uint32_t)ZWP_TEXT_INPUT_V3_CONTENT_HINT_ON_SCREEN_INPUT_PROVIDED;
+	}
 	zwp_input_method_v2_send_content_type(input_method->resource, hint,
 		purpose);
 }
